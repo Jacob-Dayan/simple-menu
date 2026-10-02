@@ -1,101 +1,23 @@
-// tried to make comments because people might read this code and not understand it otherwise
-// don't worry neither do i fully understand it sometimes
-use macroquad::prelude::*;
-enum CurrentState {
-    Game,
-    MainMenu,
-    Settings,
-}
-#[derive(Clone, Copy, Debug)]
-enum BgColor {
-    RED,
-    GREEN,
-    BLUE,
-    PINK,
-    PURPLE,
-}
-// okay the following 2? i couldn't explain, like i'm trying to be somewhat professional BUT WHO THOUGHT MAKING COLOR GO FROM A TO B COULD BE THIS HARD FFS
-impl BgColor {
-    fn next(self) -> BgColor {
-        match self {
-            BgColor::RED => BgColor::GREEN,
-            BgColor::GREEN => BgColor::BLUE,
-            BgColor::BLUE => BgColor::PINK,
-            BgColor::PINK => BgColor::PURPLE,
-            BgColor::PURPLE => BgColor::RED,
-        }
-    }
-}
-impl BgColor {
-    fn to_color(self) -> Color {
-        match self {
-            BgColor::RED => RED,
-            BgColor::GREEN => GREEN,
-            BgColor::BLUE => BLUE,
-            BgColor::PINK => PINK,
-            BgColor::PURPLE => PURPLE,
-        }
-    }
-}
-// simple struct to represent a cute dot
-struct CuteDot {
-    pos: Vec2,
-    vel: Vec2,
-    radius: f32,
-    color: Color,
-}
-// calling them cute dots bc why not
-fn new_cute_dot(pos: Vec2) -> CuteDot {
-    CuteDot {
-        pos,
-        vel: vec2(50.0, 50.0),
-        radius: 5.0,
-        color: YELLOW,
-    }
-}
-fn update_cute_dot(dot: &mut CuteDot, dt: f32, area_pos: Vec2, area_dim: Vec2) {
-    dot.pos += dot.vel * dt;
-// each of these variables represents the boundaries of the area the dot can move in
-    let left = area_pos.x + dot.radius;
-    let right = area_pos.x + area_dim.x - dot.radius;
-    let top = area_pos.y + dot.radius;
-    let bottom = area_pos.y + area_dim.y - dot.radius;
+//! I tried to document this code so it would be easier to contribue and maintain the game, but I ran into a problem!
+//! I barely manage to maintain it!
+//! good luck I guess <crying emoji>
+//! (no budget for actual emoji, deal with that)
 
-    // below is simple collision detection with the area boundaries
-    if dot.pos.x < left {
-        dot.pos.x = left;
-        dot.vel.x *= -1.0;
-    } else if dot.pos.x > right {
-        dot.pos.x = right;
-        dot.vel.x *= -1.0;
-    }
+use simple_menu::*;
 
-    if dot.pos.y < top {
-        dot.pos.y = top;
-        dot.vel.y *= -1.0;
-    } else if dot.pos.y > bottom {
-        dot.pos.y = bottom;
-        dot.vel.y *= -1.0;
-    }
-}
-
-fn draw_cute_dot(dot: &CuteDot) {
-    draw_circle(dot.pos.x, dot.pos.y, dot.radius, dot.color);
-    draw_circle_lines(dot.pos.x, dot.pos.y, dot.radius, 2.0, BLACK);
-}
 fn spawn_dot_in_box(dots: &mut Vec<CuteDot>, game_pos: Vec2, game_dim: Vec2) {
     let radius = 5.0;
     let x = macroquad::rand::gen_range(game_pos.x + radius, game_pos.x + game_dim.x - radius);
     let y = macroquad::rand::gen_range(game_pos.y + radius, game_pos.y + game_dim.y - radius);
 
-    let mut dot = new_cute_dot(vec2(x, y));
+    let mut dot = CuteDot::new(vec2(x, y));
     dot.radius = radius;
     dots.push(dot);
 }
 
 fn text_dimensions(text: &str, font_size: f32) -> Vec2 {
     let dims = measure_text(text, None, font_size as u16, 1.0);
-    return vec2(dims.width, dims.height);
+    vec2(dims.width, dims.height)
 }
 
 // WORK IN PROGRESS FUNCTION, DO NOT USE YET
@@ -105,7 +27,7 @@ fn text_dimensions(text: &str, font_size: f32) -> Vec2 {
 // please ignore the mess that is this function
 
 fn game_msg(text: &str, position: Vec2, font_size: f32) {
-    draw_text(text, position.x, position.y, font_size as f32, WHITE);
+    draw_text(text, position.x, position.y, font_size, WHITE);
 }
 //this function draws an outline around the screen, used for visual effect
 fn screen_outline(x: f32, y: f32, w: f32, h: f32) {
@@ -139,12 +61,12 @@ fn dev_mode_display(dev_mode: bool, mouse: (f32, f32), fps: i32, amount_of_dots:
         let dev_txt_dim = text_dimensions("developer mode active", 20.0);
         let cords_txt_dim = text_dimensions(&format!("x: {} | y: {}", mouse.0, mouse.1), 20.0);
         let fps_txt_dim = text_dimensions(&format!("FPS: {}", fps), 20.0);
-                    let dots_txt_dim = text_dimensions(&format!("dots: {}", amount_of_dots), 20.0);
+        let dots_txt_dim = text_dimensions(&format!("dots: {amount_of_dots}"), 20.0);
 
         let dev_dim = vec2(dev_txt_dim.x, dev_txt_dim.y);
         let fps_dim = vec2(fps_txt_dim.x, fps_txt_dim.y);
         let cords_dim = vec2(cords_txt_dim.x, cords_txt_dim.y);
-       let dots_dim = vec2(dots_txt_dim.x, dots_txt_dim.y);
+        let dots_dim = vec2(dots_txt_dim.x, dots_txt_dim.y);
 
         draw_text(
             &format!("x: {} | y: {}", mouse.0, mouse.1),
@@ -155,7 +77,7 @@ fn dev_mode_display(dev_mode: bool, mouse: (f32, f32), fps: i32, amount_of_dots:
         );
 
         draw_text(
-            &format!("developer mode active"),
+            "developer mode active",
             screen_width() * 0.85 - dev_dim.x / 2.0,
             screen_height() * 0.1 - dev_dim.y / 2.0,
             20.0,
@@ -164,15 +86,15 @@ fn dev_mode_display(dev_mode: bool, mouse: (f32, f32), fps: i32, amount_of_dots:
         // although the fps is drawn every frame, it only updates every 10 frames in the main loop to reduce performance impact and change frequency
         // probably a less complex way to do this but it works for now
         draw_text(
-            &format!("FPS: {}", fps),
+            &format!("FPS: {fps}"),
             screen_width() * 0.85 - fps_dim.x / 2.0,
             screen_height() * 0.15 - fps_dim.y / 2.0,
             20.0,
             BLACK,
         );
-        
-draw_text( 
-            &format!("dots: {}", amount_of_dots),
+
+        draw_text(
+            &format!("dots: {amount_of_dots}"),
             screen_width() * 0.85 - dots_dim.x / 2.0,
             screen_height() * 0.2 - dots_dim.y / 2.0,
             20.0,
@@ -181,21 +103,32 @@ draw_text(
     }
 }
 
-#[macroquad::main("i click button, i happy")]
+use clap::Parser;
+#[derive(Parser)]
+#[command(version)]
+struct Cli {
+    #[arg(skip = env!("CARGO_PKG_VERSION"))]
+    version: &'static str,
+    #[arg(long)]
+    dev_mode: bool,
+}
+
+#[macroquad::main("I click button, I happy")]
 async fn main() {
+    let cli = Cli::parse();
+
     // fps tracking variables
-    let mut fps: i32 = 60;
-    let mut i: i32 = 0;
-    let max: i32 = 10;
+    let mut fps = 60;
+    let mut i = 0;
+    let max = 10;
 
     // lots of variables to keep track of the state of the game
-    let version = "0.2.3";
-    let mut dev_mode = false;
+    let mut dev_mode = cli.dev_mode;
     let mut state = CurrentState::MainMenu;
-    let mut current_color: BgColor = BgColor::PURPLE;
+    let mut current_color = BgColor::Purple;
 
     let mut dots: Vec<CuteDot> = Vec::new();
-    let mut amount_of_dots: i32 = 20;
+    let mut amount_of_dots = 20;
 
     let rec_dim = vec2(500.0, 300.0);
     let rec_pos = vec2(
@@ -207,14 +140,14 @@ async fn main() {
         let radius = 5.0;
         let x = macroquad::rand::gen_range(rec_pos.x + radius, rec_pos.x + rec_dim.x - radius);
         let y = macroquad::rand::gen_range(rec_pos.y + radius, rec_pos.y + rec_dim.y - radius);
-        let mut dot = new_cute_dot(vec2(x, y));
+        let mut dot = CuteDot::new(vec2(x, y));
         dot.radius = radius;
         dots.push(dot);
     }
 
     loop {
         let dt = get_frame_time();
-        clear_background(current_color.to_color());
+        clear_background(Color::from(current_color));
 
         // for fps display in dev mode
         i += 1;
@@ -244,7 +177,7 @@ async fn main() {
         // this match statement handles the different states of the game, note how each state has its own UI and functionality
         match state {
             CurrentState::MainMenu => {
-                let v_text = version;
+                let v_text = cli.version;
                 let v_text_dims = measure_text(v_text, None, 20, 1.0);
                 let game_text_pos = vec2(10.0, v_text_dims.height * 3.0);
 
@@ -272,21 +205,34 @@ async fn main() {
 
                 draw_rectangle(game_pos.x, game_pos.y, game_dim.x, game_dim.y, LIGHTGRAY);
                 game_msg(game_text, game_text_pos, 40.0);
-// update and draw each cute dot
+                // update and draw each cute dot
                 let inside_game_pos = game_pos - vec2(outline_size / 2.0, outline_size / 2.0);
 
                 for dot in &mut dots {
                     update_cute_dot(dot, dt, inside_game_pos, game_dim);
                 }
                 for dot in &dots {
-                    draw_cute_dot(dot);
+                    dot.draw();
                 }
                 // draw the game area outline after drawing the dots to ensure it's on top
-                draw_rectangle_lines(game_pos.x, game_pos.y, game_dim.x, game_dim.y, outline_size, BLACK);
-                if button(screen_width() / 4.0, screen_height() - 100.0, btn_size.x, btn_size.y, "dots +") {
-                     amount_of_dots += 1;
-    spawn_dot_in_box(&mut dots, inside_game_pos, game_dim);
-    println!("dots increased to {}", amount_of_dots);
+                draw_rectangle_lines(
+                    game_pos.x,
+                    game_pos.y,
+                    game_dim.x,
+                    game_dim.y,
+                    outline_size,
+                    BLACK,
+                );
+                if button(
+                    screen_width() / 4.0,
+                    screen_height() - 100.0,
+                    btn_size.x,
+                    btn_size.y,
+                    "dots +",
+                ) {
+                    amount_of_dots += 1;
+                    spawn_dot_in_box(&mut dots, inside_game_pos, game_dim);
+                    println!("dots increased to {}", amount_of_dots);
                 }
                 if button(10.0, 10.0, btn_size.x, btn_size.y, "Settings") {
                     state = CurrentState::Settings;
@@ -330,5 +276,29 @@ async fn main() {
         next_frame().await;
     }
 }
-// hey we made it to the end! congrats!
-// hope you found what you were looking for :D
+
+fn update_cute_dot(dot: &mut CuteDot, dt: f32, area_pos: Vec2, area_dim: Vec2) {
+    dot.pos += dot.vel * dt;
+    // each of these variables represents the boundaries of the area the dot can move in
+    let left = area_pos.x + dot.radius;
+    let right = area_pos.x + area_dim.x - dot.radius;
+    let top = area_pos.y + dot.radius;
+    let bottom = area_pos.y + area_dim.y - dot.radius;
+
+    // below is simple collision detection with the area boundaries
+    if dot.pos.x < left {
+        dot.pos.x = left;
+        dot.vel.x *= -1.0;
+    } else if dot.pos.x > right {
+        dot.pos.x = right;
+        dot.vel.x *= -1.0;
+    }
+
+    if dot.pos.y < top {
+        dot.pos.y = top;
+        dot.vel.y *= -1.0;
+    } else if dot.pos.y > bottom {
+        dot.pos.y = bottom;
+        dot.vel.y *= -1.0;
+    }
+}
