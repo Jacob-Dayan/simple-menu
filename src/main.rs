@@ -228,7 +228,7 @@ async fn main() {
                 ) {
                     amount_of_dots += 1;
                     spawn_dot_in_box(&mut dots, game_bounds);
-                    println!("dots increased to {}", amount_of_dots);
+                    println!("dots increased to {amount_of_dots}");
                 }
 
                 if button(Rect::new(10.0, 10.0, BTN_SIZE.x, BTN_SIZE.y), "Settings") {
@@ -248,7 +248,7 @@ async fn main() {
 
                 if button(
                     centered_rect(screen_width() / 2.0, 125.0, COLOR_BTN_SIZE),
-                    &format!("Dev: {}", dev_mode),
+                    &format!("Dev: {}", if dev_mode { "activated" } else { "disabled" }),
                 ) {
                     dev_mode = !dev_mode;
                 }
