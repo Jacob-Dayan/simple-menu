@@ -55,7 +55,9 @@ fn screen_outline() {
     );
 }
 
-// simple button function, returns true if clicked yes i know it's basic but hey it works
+/// A function that checks if pressed a button,
+/// or if the mouse is currently hoverring the button ->
+/// The button becomes light gray (until unhovered)
 fn button(rect: Rect, label: &str) -> bool {
     let (mx, my) = mouse_position();
     let hovered = rect.contains(vec2(mx, my));
@@ -79,36 +81,34 @@ fn button(rect: Rect, label: &str) -> bool {
     hovered && is_mouse_button_pressed(MouseButton::Left)
 }
 
-fn dev_mode_display(dev_mode: bool, mouse: (f32, f32), fps: i32, amount_of_dots: usize) {
+fn dev_mode_display(mouse: (f32, f32), fps: i32, dots_count: usize) {
     // displays mouse coordinates and a dev mode message when dev mode is active
     // the function is called every frame, but only draws when dev_mode is true
     // which is efficient enough for this simple use case
     // but i should probably add some throttling or optimization if this were to be used in a more complex application oh well
 
-    if dev_mode {
-        let entries = [
-            format!("x: {} | y: {}", mouse.0, mouse.1),
-            "developer mode active".to_string(),
-            format!("FPS: {fps}"),
-            format!("dots: {amount_of_dots}"),
-        ];
+    let entries = [
+        format!("x: {} | y: {}", mouse.0, mouse.1),
+        "developer mode active".to_string(),
+        format!("FPS: {fps}"),
+        format!("dots: {dots_count}"),
+    ];
 
-        let font_size = 20.0;
-        let base_x = screen_width() * 0.85;
+    let font_size = 20.0;
+    let base_x = screen_width() * 0.85;
 
-        for (idx, line) in entries.iter().enumerate() {
-            let dims = text_dimensions(line, font_size);
-            // although the fps is drawn every frame, it only updates every 10 frames in the main loop to reduce performance impact and change frequency
-            // probably a less complex way to do this but it works for now
-            let y_pos = screen_height() * (0.05 * (idx + 1) as f32);
-            draw_text(
-                line,
-                base_x - dims.width / 2.0,
-                y_pos - dims.height / 2.0,
-                font_size,
-                BLACK,
-            );
-        }
+    for (idx, line) in entries.iter().enumerate() {
+        let dims = text_dimensions(line, font_size);
+        // although the fps is drawn every frame, it only updates every 10 frames in the main loop to reduce performance impact and change frequency
+        // probably a less complex way to do this but it works for now
+        let y_pos = screen_height() * (0.05 * (idx + 1) as f32);
+        draw_text(
+            line,
+            base_x - dims.width / 2.0,
+            y_pos - dims.height / 2.0,
+            font_size,
+            BLACK,
+        );
     }
 }
 
@@ -138,11 +138,11 @@ async fn main() {
     let mut state = CurrentState::MainMenu;
     let mut current_color = BgColor::Purple;
 
-    let mut amount_of_dots = cli.dots_count.unwrap_or(DEFAULT_DOTS_COUNT);
-    let mut dots: Vec<CuteDot> = Vec::with_capacity(amount_of_dots);
+    let mut dots_count = cli.dots_count.unwrap_or(DEFAULT_DOTS_COUNT);
+    let mut dots: Vec<CuteDot> = Vec::with_capacity(dots_count);
     let initial_bounds = game_bounds();
 
-    for _ in 0..amount_of_dots {
+    for _ in 0..dots_count {
         spawn_dot_in_box(&mut dots, initial_bounds);
     }
 
@@ -161,7 +161,9 @@ async fn main() {
         screen_outline();
 
         // display dev mode info if active
-        dev_mode_display(dev_mode, mouse_position(), fps, amount_of_dots);
+        if dev_mode {
+            dev_mode_display(mouse_position(), fps, dots_count);
+        }
 
         // this match statement handles the different states of the game, note how each state has its own UI and functionality
         match state {
@@ -226,9 +228,9 @@ async fn main() {
                     ),
                     "dots +",
                 ) {
-                    amount_of_dots += 1;
+                    dots_count += 1;
                     spawn_dot_in_box(&mut dots, game_bounds);
-                    println!("dots increased to {amount_of_dots}");
+                    println!("dots increased to {dots_count}");
                 }
 
                 if button(Rect::new(10.0, 10.0, BTN_SIZE.x, BTN_SIZE.y), "Settings") {
@@ -238,7 +240,7 @@ async fn main() {
             CurrentState::Settings => {
                 // i might add more settings later but for now this is fine
                 // also the settings text at the bottom is just a placeholder for now
-                let settings_text = "change your settings as you desire! (SETTINGS SOON!!)";
+                let settings_text = "change your settings as you desire!";
                 let settings_dims = text_dimensions(settings_text, 30.0);
                 let settings_text_pos = vec2(
                     (screen_width() - settings_dims.width) / 2.0,
